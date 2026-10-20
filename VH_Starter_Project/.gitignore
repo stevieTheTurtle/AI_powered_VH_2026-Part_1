@@ -1,0 +1,27 @@
+# Unity
+UnityProject/[Ll]ibrary/
+UnityProject/[Tt]emp/
+UnityProject/[Oo]bj/
+UnityProject/[Bb]uild/
+UnityProject/[Bb]uilds/
+UnityProject/[Ll]ogs/
+UnityProject/[Uu]ser[Ss]ettings/
+UnityProject/*.csproj
+UnityProject/*.sln
+UnityProject/.vs/
+# Python
+PythonProject/.venv/
+PythonProject/__pycache__/
+PythonProject/**/__pycache__/
+PythonProject/.env
+PythonProject/static/audio/*
+!PythonProject/static/audio/.gitkeep
+# Never ship or commit
+UnityProject/Assets/Plugins/OVRLipSync*
+*.unitypackage
+PythonProject/models/*
+!PythonProject/models/README.md
+
+# Course character: shared privately as Camila_Character.unitypackage, never commit it
+UnityProject/Assets/Characters/
+UnityProject/Assets/Characters.meta

@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic>=2
+faster-whisper
+av==13.1.0
+piper-tts==1.8.0
+python-dotenv
+ollama
+# Whisper on an NVIDIA GPU (cublas64_12.dll, cudnn64_9.dll). Windows only; without a GPU Whisper runs on the CPU.
+nvidia-cublas-cu12==12.9.2.10; sys_platform == "win32"
+nvidia-cudnn-cu12==9.27.0.42; sys_platform == "win32"
