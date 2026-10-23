@@ -18,3 +18,5 @@ Download links and the exact file list are in `Software_&_Downloads.md` (§5.1, 
 | `piper-voice-it_IT-serena-high/` | `it_IT-serena-high.onnx`, `it_IT-serena-high.onnx.json` | <https://huggingface.co/rhasspy/piper-voices/tree/main/it/it_IT/serena/high> |
 
 Put the files of each model into a folder with the name shown above.
+
+Or let a script do it: from the repository root run `python download_models.py` (add `--no-italian` to skip the Italian voice).
