@@ -11,6 +11,8 @@ KEEP = {"response_01.wav"}                             # the bridge mock clip is
 
 # Local voices only: no network. TTS_LANGUAGE (en or it, default en) picks the voice, which lives in
 # PythonProject/models/. TTS_MODEL=<path to a .onnx file> overrides it (its .onnx.json must sit next to it).
+# Download: en https://huggingface.co/rhasspy/piper-voices/tree/main/en/en_US/hfc_female/medium
+#           it https://huggingface.co/rhasspy/piper-voices/tree/main/it/it_IT/serena/high  (see models/README.md)
 VOICES = {
     "en": "piper-voice-en_US-hfc_female-medium/en_US-hfc_female-medium.onnx",
     "it": "piper-voice-it_IT-serena-high/it_IT-serena-high.onnx",

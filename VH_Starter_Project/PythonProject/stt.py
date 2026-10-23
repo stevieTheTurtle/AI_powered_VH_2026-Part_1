@@ -6,6 +6,7 @@ from faster_whisper import WhisperModel
 
 # Local model folder only: no download from Hugging Face.
 # Default: PythonProject/models/faster-whisper-small. Override with WHISPER_MODEL=<folder>.
+# Download the model files from https://huggingface.co/Systran/faster-whisper-small (see models/README.md).
 _MODEL_PATH = Path(os.getenv("WHISPER_MODEL") or Path(__file__).parent / "models" / "faster-whisper-small")
 _LANGUAGE = os.getenv("WHISPER_LANGUAGE") or None        # e.g. "en" or "it"; None = auto-detect
 # GPU when an NVIDIA GPU is available, otherwise CPU. Valid devices: "cuda" or "cpu" (not "gpu").

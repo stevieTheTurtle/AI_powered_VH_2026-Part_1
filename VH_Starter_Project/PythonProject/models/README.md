@@ -9,6 +9,12 @@ models/
   piper-voice-it_IT-serena-high/           Italian voice (optional, TTS_LANGUAGE=it)
 ```
 
-Download links are in the `material/` folder: `material/STT/Whisper_small_model.url`,
-`material/TTS/Piper_voices.url` and `material/TTS/Piper_voice_Italian.url`. Download every file of
-each model into a folder with the name shown above.
+Download links and the exact file list are in `Software_&_Downloads.md` (§5.1, at the root of the repository):
+
+| Folder | Files | Source |
+|---|---|---|
+| `faster-whisper-small/` | `config.json`, `model.bin`, `tokenizer.json`, `vocabulary.txt` | <https://huggingface.co/Systran/faster-whisper-small> → *Files* |
+| `piper-voice-en_US-hfc_female-medium/` | `en_US-hfc_female-medium.onnx`, `en_US-hfc_female-medium.onnx.json` | <https://huggingface.co/rhasspy/piper-voices/tree/main/en/en_US/hfc_female/medium> |
+| `piper-voice-it_IT-serena-high/` | `it_IT-serena-high.onnx`, `it_IT-serena-high.onnx.json` | <https://huggingface.co/rhasspy/piper-voices/tree/main/it/it_IT/serena/high> |
+
+Put the files of each model into a folder with the name shown above.
