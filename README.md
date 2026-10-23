@@ -16,6 +16,7 @@ In this part of the masterclass we build an **Embodied Conversational Agent** st
 |---|---|
 | `Software_&_Downloads.md` | **Read this first**: everything to install and download before the course |
 | `VH_Starter_Project/` | The course template: `UnityProject/` (Unity 6000.3.26f1), `PythonProject/` (brain, ears, voice, server), `to_import/` (files for Hour 3) |
+| `VH_Demo_Project/` | Every stage of Day 1 and Day 2, ready to try: one scene per stage, picked from a menu, with the Python server started on Play. It contains the solutions: see its README |
 | `Slides/` | The slides as PDF, published day by day |
 
 ## TL;DR: prepare before the course
