@@ -7,15 +7,19 @@ Run it from the repository root (the folder that contains VH_Starter_Project):
 
 Only the Python standard library is used, so it works before the .venv exists.
 Files that are already complete are skipped, so you can run it again after an interruption.
+Dropped connections are retried, and a partial download resumes where it stopped.
 """
 import argparse
 import hashlib
 import sys
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
 HF = "https://huggingface.co"
+HEADERS = {"User-Agent": "aivh-course"}
+ATTEMPTS = 6          # per request; waits 2, 4, 8, 16, 30 s between attempts
 
 # folder name -> (Hugging Face repo, path inside the repo, file names)
 MODELS = {
@@ -42,9 +46,27 @@ def find_models_dir() -> Path:
     sys.exit("Could not find VH_Starter_Project/PythonProject/. Put this script in the repository root.")
 
 
+def retry(what: str, fn, *args):
+    """Call fn(*args); on a network error wait and try again (Wi-Fi drops, resets, timeouts)."""
+    for attempt in range(1, ATTEMPTS + 1):
+        try:
+            return fn(*args)
+        except urllib.error.HTTPError as e:
+            if e.code < 500 and e.code != 429:   # 404 and similar: retrying will not help
+                raise
+            err = e
+        except (urllib.error.URLError, ConnectionError, TimeoutError, OSError) as e:
+            err = e
+        if attempt == ATTEMPTS:
+            raise err
+        wait = min(2 ** attempt, 30)
+        print(f"    {what}: {getattr(err, 'reason', err)}, retrying in {wait} s ({attempt}/{ATTEMPTS - 1})")
+        time.sleep(wait)
+
+
 def remote_info(url: str) -> tuple[int, str | None]:
     """Size in bytes and, for large (LFS) files, the SHA-256 that Hugging Face publishes."""
-    req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "aivh-course"})
+    req = urllib.request.Request(url, method="HEAD", headers=HEADERS)
     opener = urllib.request.build_opener(_NoRedirect)
     try:
         with opener.open(req, timeout=30) as r:
@@ -58,7 +80,7 @@ def remote_info(url: str) -> tuple[int, str | None]:
         sha = None
     size = headers.get("X-Linked-Size")
     if size is None:   # small file: follow the redirect and read the real size
-        req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "aivh-course"})
+        req = urllib.request.Request(url, method="HEAD", headers=HEADERS)
         with urllib.request.urlopen(req, timeout=30) as r:
             size = r.headers.get("Content-Length")
     return int(size), sha
@@ -79,19 +101,32 @@ def sha256(path: Path) -> str:
 
 def download(url: str, dest: Path, size: int) -> None:
     part = dest.with_name(dest.name + ".part")
-    req = urllib.request.Request(url, headers={"User-Agent": "aivh-course"})
-    with urllib.request.urlopen(req, timeout=60) as r, open(part, "wb") as out:
-        done, last = 0, 0.0
-        while block := r.read(1 << 20):
-            out.write(block)
-            done += len(block)
-            if time.time() - last > 0.5 or done == size:
-                last = time.time()
-                print(f"\r    {done / 1e6:7.1f} / {size / 1e6:.1f} MB", end="", flush=True)
+    done = part.stat().st_size if part.exists() else 0
+    if done > size:
+        part.unlink()
+        done = 0
+    if done < size:
+        headers = dict(HEADERS, Range=f"bytes={done}-") if done else HEADERS
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=60) as r:
+            if done and r.status != 206:   # server ignored the range: start over
+                done = 0
+            with open(part, "ab" if done else "wb") as out:
+                _copy(r, out, done, size)
     print()
     if part.stat().st_size != size:
-        raise RuntimeError(f"incomplete download ({part.stat().st_size} of {size} bytes)")
+        raise ConnectionError(f"incomplete download ({part.stat().st_size} of {size} bytes)")
     part.replace(dest)
+
+
+def _copy(r, out, done: int, size: int) -> None:
+    last = 0.0
+    while block := r.read(1 << 20):
+        out.write(block)
+        done += len(block)
+        if time.time() - last > 0.5 or done == size:
+            last = time.time()
+            print(f"\r    {done / 1e6:7.1f} / {size / 1e6:.1f} MB", end="", flush=True)
 
 
 def main() -> None:
@@ -112,12 +147,12 @@ def main() -> None:
             url = f"{HF}/{repo}/resolve/main/{sub}{name}"
             dest = target / name
             try:
-                size, sha = remote_info(url)
+                size, sha = retry(name, remote_info, url)
                 if dest.exists() and dest.stat().st_size == size:
                     print(f"  {name}: already there")
                     continue
                 print(f"  {name}: downloading")
-                download(url, dest, size)
+                retry(name, download, url, dest, size)
                 if sha and sha256(dest) != sha:
                     dest.unlink()
                     raise RuntimeError("checksum mismatch, file removed")
