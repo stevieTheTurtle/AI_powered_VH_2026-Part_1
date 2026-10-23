@@ -64,26 +64,30 @@ def retry(what: str, fn, *args):
         time.sleep(wait)
 
 
-def remote_info(url: str) -> tuple[int, str | None]:
-    """Size in bytes and, for large (LFS) files, the SHA-256 that Hugging Face publishes."""
+def remote_info(url: str) -> tuple[int, str | None, str]:
+    """Size in bytes, the SHA-256 Hugging Face publishes for large (LFS) files, and the URL to download.
+
+    Large files redirect to the Hugging Face CDN. Small text files (config.json, .onnx.json...)
+    would redirect to huggingface.co/api/resolve-cache/..., which some networks reset, so they
+    are fetched from the plain /raw/ address instead.
+    """
     req = urllib.request.Request(url, method="HEAD", headers=HEADERS)
     opener = urllib.request.build_opener(_NoRedirect)
     try:
         with opener.open(req, timeout=30) as r:
             headers = r.headers
-    except urllib.error.HTTPError as e:   # the redirect to the CDN arrives here
+    except urllib.error.HTTPError as e:   # the redirect arrives here
         if e.code not in (301, 302, 303, 307, 308):
             raise
         headers = e.headers
-    sha = (headers.get("X-Linked-ETag") or "").strip('"') or None
-    if sha and len(sha) != 64:
-        sha = None
     size = headers.get("X-Linked-Size")
-    if size is None:   # small file: follow the redirect and read the real size
-        req = urllib.request.Request(url, method="HEAD", headers=HEADERS)
-        with urllib.request.urlopen(req, timeout=30) as r:
-            size = r.headers.get("Content-Length")
-    return int(size), sha
+    if size is not None:   # large file: the CDN link, checked with SHA-256
+        sha = (headers.get("X-Linked-ETag") or "").strip('"')
+        return int(size), (sha if len(sha) == 64 else None), url
+    raw = url.replace("/resolve/", "/raw/", 1)
+    req = urllib.request.Request(raw, method="HEAD", headers=HEADERS)
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return int(r.headers["Content-Length"]), None, raw
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -147,12 +151,12 @@ def main() -> None:
             url = f"{HF}/{repo}/resolve/main/{sub}{name}"
             dest = target / name
             try:
-                size, sha = retry(name, remote_info, url)
+                size, sha, src = retry(name, remote_info, url)
                 if dest.exists() and dest.stat().st_size == size:
                     print(f"  {name}: already there")
                     continue
                 print(f"  {name}: downloading")
-                retry(name, download, url, dest, size)
+                retry(name, download, src, dest, size)
                 if sha and sha256(dest) != sha:
                     dest.unlink()
                     raise RuntimeError("checksum mismatch, file removed")
