@@ -86,7 +86,7 @@ The free quota is enough for the course. If you hit a limit, tell the instructor
 
 These run on your own computer (no account, no key). Download them now into a temporary folder; you move them into the template's `PythonProject/models/` folder after §7. Please keep the folder names exactly as written.
 
-**Easier:** once you have the template (§7), run `python download_models.py` in its root folder. It downloads all three models into `VH_Starter_Project/PythonProject/models/` with the right folder names (add `--no-italian` to skip the Italian voice). The table below is for downloading by hand.
+**Easier:** once you have the template (§7), run `python download_models.py` in its root folder. It downloads all three models into `VH_Starter_Project/PythonProject/models/` with the right folder names, and copies them into `VH_Demo_Project/PythonProject/models/` too when the demo project is there (add `--no-italian` to skip the Italian voice). The table below is for downloading by hand.
 
 | Model | Link | Files to download | Folder name | Size |
 |---|---|---|---|---|

@@ -1,9 +1,12 @@
-"""Download the speech models for the course into VH_Starter_Project/PythonProject/models/.
+"""Download the speech models for the course into PythonProject/models/ of every project folder found.
 
-Run it from the repository root (the folder that contains VH_Starter_Project):
+Run it from the repository root (the folder that contains VH_Starter_Project and/or VH_Demo_Project):
 
     python download_models.py               # Whisper small + English voice + Italian voice
     python download_models.py --no-italian  # skip the optional Italian voice
+    python download_models.py --dest <folder>   # only into this models folder
+
+With both projects in the folder, the models are downloaded once and copied into the second one.
 
 Only the Python standard library is used, so it works before the .venv exists.
 Files that are already complete are skipped, so you can run it again after an interruption.
@@ -11,6 +14,7 @@ Dropped connections are retried, and a partial download resumes where it stopped
 """
 import argparse
 import hashlib
+import shutil
 import sys
 import time
 import urllib.error
@@ -36,14 +40,39 @@ MODELS = {
 OPTIONAL = {"piper-voice-it_IT-serena-high"}
 
 
-def find_models_dir() -> Path:
+PROJECTS = ("VH_Starter_Project", "VH_Demo_Project")
+
+
+def find_models_dirs(dest: str | None) -> list[Path]:
+    """The models folders to fill: --dest, else every project in the repository root, else this project."""
+    if dest:
+        return [Path(dest).resolve()]
     here = Path(__file__).resolve().parent
-    for candidate in (here / "VH_Starter_Project" / "PythonProject" / "models",
-                      here / "PythonProject" / "models",
+    found = [here / p / "PythonProject" / "models" for p in PROJECTS if (here / p / "PythonProject").is_dir()]
+    if found:
+        return found
+    for candidate in (here / "PythonProject" / "models",      # the script inside a project folder
                       here / "models"):
         if candidate.parent.is_dir():
-            return candidate
-    sys.exit("Could not find VH_Starter_Project/PythonProject/. Put this script in the repository root.")
+            return [candidate]
+    sys.exit("Could not find VH_Starter_Project/PythonProject/ or VH_Demo_Project/PythonProject/. "
+             "Put this script in the repository root.")
+
+
+def copy_models(src: Path, dst: Path, folders: list[str]) -> None:
+    """Same files, second project: copy instead of downloading again."""
+    print(f"\nCopying into {dst}")
+    for folder in folders:
+        for f in (src / folder).iterdir():
+            if f.suffix == ".part":
+                continue
+            out = dst / folder / f.name
+            if out.exists() and out.stat().st_size == f.stat().st_size:
+                print(f"  {folder}/{f.name}: already there")
+                continue
+            out.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(f, out)
+            print(f"  {folder}/{f.name}: copied")
 
 
 def retry(what: str, fn, *args):
@@ -136,13 +165,16 @@ def _copy(r, out, done: int, size: int) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--no-italian", action="store_true", help="skip the optional Italian Piper voice")
+    ap.add_argument("--dest", help="models folder to fill (default: every project found next to this script)")
     args = ap.parse_args()
 
-    models_dir = find_models_dir()
-    print(f"Models folder: {models_dir}")
+    models_dirs = find_models_dirs(args.dest)
+    models_dir = models_dirs[0]
+    print("Models folder: " + ", ".join(str(d) for d in models_dirs))
     failed = []
+    folders = [f for f in MODELS if not (args.no_italian and f in OPTIONAL)]
     for folder, (repo, sub, files) in MODELS.items():
-        if args.no_italian and folder in OPTIONAL:
+        if folder not in folders:
             continue
         print(f"\n{folder}")
         target = models_dir / folder
@@ -165,6 +197,10 @@ def main() -> None:
                 failed.append(f"{folder}/{name}")
 
     print()
+    if not failed:
+        for other in models_dirs[1:]:
+            copy_models(models_dir, other, folders)
+        print()
     if failed:
         print("Some files failed: " + ", ".join(failed))
         print("Run the script again, or download them by hand (links in PythonProject/models/README.md).")
