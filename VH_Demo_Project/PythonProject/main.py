@@ -1,4 +1,4 @@
-# main.py — Server: the bridge between the brain side (Python) and the body (Unity)   (demo: Day 1-2 blocks filled)
+# main.py — Server: the bridge between the brain side (Python) and the body (Unity)   (demo: every gap filled, Day 1-2 and webinar)
 #   uvicorn main:app --reload --port 8000      ->  http://127.0.0.1:8000/docs
 from dotenv import load_dotenv
 load_dotenv()                                   # before importing brain/stt/tts: they read env vars

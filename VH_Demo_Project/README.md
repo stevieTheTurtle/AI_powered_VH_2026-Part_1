@@ -1,14 +1,14 @@
-# VH Demo Project: every stage of Day 1 and Day 2, ready to try
+# VH Demo Project: every stage of Day 1, Day 2 and the webinar, ready to try
 
 A separate Unity project that shows the result of each stage of the course, one scene per stage, in the order of the slides.
 You don't need to write code or know Unity: open it, import two packages, press Play and click a stage.
 
-It contains the **solutions of Day 1 and Day 2**. Your own work stays in `VH_Starter_Project`: this project never touches it.
+It contains the **solutions of Day 1, Day 2 and the webinar (Tutorial 1)**. Your own work stays in `VH_Starter_Project`: this project never touches it.
 
 ## What you need
 
 * **Unity 6000.3.26f1** (the same as the course).
-* For the Day 2 stages: **Python 3.12** and the **Ollama app**, running and signed in (see `Software_&_Downloads.md`).
+* For the Day 2 and webinar stages: **Python 3.12** and the **Ollama app**, running and signed in (see `Software_&_Downloads.md`).
 * Two packages you already have from the course: **OVRLipSync** (Meta, Day 1) and **Camila_Character.unitypackage** (course email).
 
 ## Open it (once)
@@ -36,10 +36,13 @@ In every scene the panel at the top left says what you are looking at and has th
 | 7 | Typed chat | Day 2 · Hour 5 · TURN-3 | Type a message: the character answers with its voice |
 | 8 | Microphone and upload | Day 2 · Hour 6 | Hold Space and speak: you hear your recording and read what Whisper heard |
 | 9 | Voice loop | Day 2 · Hour 6 · LIVE-6, TURN-4 | Hold Space, speak, release: the character answers; timings in the panel |
+| 10 | Gesture layer | Webinar · LIVE-7 | Buttons WAVE, SHRUG, THINKING play on the upper body; "DANCE!" is refused by the whitelist |
+| 11 | Facial emotion | Webinar | Buttons NEUTRAL, HAPPY, SAD: brows, cheeks and eyes ease in; the lips stay with the lip-sync |
+| 12 | The talking character | Webinar · TURN-5, TURN-6, LIVE-8, TURN-7 | Type or speak: the reply comes with a gesture and an emotion chosen by the brain |
 
 ## The Python server starts by itself
 
-Press **Play** in `00_Index` or in a Day 2 scene and a terminal window opens running the server (`PythonProject/run_server.bat`, or `run_server.sh` on macOS). Wait until the panel says **Server: online**. Close that window to stop the server.
+Press **Play** in `00_Index` or in a Day 2 or webinar scene and a terminal window opens running the server (`PythonProject/run_server.bat`, or `run_server.sh` on macOS). Wait until the panel says **Server: online**. Close that window to stop the server.
 
 The very first time it prepares everything, which takes a few minutes:
 

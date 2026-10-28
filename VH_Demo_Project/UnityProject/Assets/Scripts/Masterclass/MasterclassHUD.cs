@@ -3,8 +3,8 @@ using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 
-// The stages of Day 1 and Day 2, in the order of the slides. Hour 4 is the Python track (no Unity), so it has no scene.
-public enum MasterclassStage { Stage, Blink, Gaze, Speaking, LipSync, SpeechPlayer, TypedChat, Microphone, VoiceLoop }
+// The stages of Day 1, Day 2 and the webinar, in the order of the slides. Hour 4 is the Python track (no Unity), so it has no scene.
+public enum MasterclassStage { Stage, Blink, Gaze, Speaking, LipSync, SpeechPlayer, TypedChat, Microphone, VoiceLoop, Gestures, Emotions, TalkingCharacter }
 
 // Teaching overlay (IMGUI, no assets needed): what this scene shows, buttons to try the parts that exist
 // at this stage, and the live status of the server and the voice loop.
@@ -20,6 +20,7 @@ public class MasterclassHUD : MonoBehaviour
     [SerializeField] Camera cam;
     [SerializeField] GazeController gaze;
     [SerializeField] CharacterBehaviorManager behavior;
+    [SerializeField] ExpressionController expression;
     [SerializeField] AudioSource mouthSource;
     [SerializeField] SpeechPlayer speech;
     [SerializeField] AudioClip sampleSpeech;
@@ -30,6 +31,9 @@ public class MasterclassHUD : MonoBehaviour
     [SerializeField] ChatUI chatUI;
 
     [System.Serializable] class SttReply { public string transcript; }
+
+    static readonly string[] GestureKeys = { "WAVE", "SHRUG", "THINKING" };
+    static readonly string[] Emotions = { "NEUTRAL", "HAPPY", "SAD" };
 
     bool collapsed, gazeOn = true;
     string serverStatus = "?";
@@ -70,6 +74,13 @@ public class MasterclassHUD : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Tab)) collapsed = !collapsed;
         if (behavior != null && Input.GetKeyDown(KeyCode.S)) behavior.SetSpeaking(!behavior.IsSpeaking);
         if (Input.GetKeyDown(KeyCode.P)) PlaySample();
+        // Webinar: 1-3 gestures, F1-F3 emotions.
+        if (Has(MasterclassStage.Gestures) && behavior != null)
+            for (int i = 0; i < GestureKeys.Length; i++)
+                if (Input.GetKeyDown(KeyCode.Alpha1 + i)) behavior.PlayGesture(GestureKeys[i]);
+        if (expression != null)
+            for (int i = 0; i < Emotions.Length; i++)
+                if (Input.GetKeyDown(KeyCode.F1 + i)) expression.SetEmotion(Emotions[i]);
 
         if (stage == MasterclassStage.Microphone && mic != null)
         {
@@ -154,6 +165,7 @@ public class MasterclassHUD : MonoBehaviour
             if (Has(MasterclassStage.Gaze) && gaze != null) DrawGaze();
             if (Has(MasterclassStage.Speaking) && behavior != null) DrawSpeaking();
             if (Has(MasterclassStage.LipSync)) DrawVoice();
+            if (Has(MasterclassStage.Gestures)) DrawGesturesAndFace();
             if (stage == MasterclassStage.Microphone) DrawMic();
             if (Has(MasterclassStage.TypedChat)) DrawBridge();
 
@@ -206,6 +218,29 @@ public class MasterclassHUD : MonoBehaviour
         GUI.enabled = true;
     }
 
+    void DrawGesturesAndFace()
+    {
+        GUILayout.Space(6);
+        if (behavior != null)
+        {
+            GUILayout.Label("<b>Gestures</b> (CharacterBehaviorManager.PlayGesture, whitelist)", small);
+            GUILayout.BeginHorizontal();
+            foreach (var g in GestureKeys)
+                if (GUILayout.Button(g)) behavior.PlayGesture(g);
+            GUILayout.EndHorizontal();
+            if (GUILayout.Button("\"DANCE!\" (not in the whitelist)")) behavior.PlayGesture("DANCE!");
+        }
+        if (expression != null)
+        {
+            GUILayout.Label($"<b>Emotion</b> (ExpressionController): {expression.CurrentEmotion}", small);
+            GUILayout.BeginHorizontal();
+            foreach (var e in Emotions)
+                if (GUILayout.Button(e)) expression.SetEmotion(e);
+            GUILayout.EndHorizontal();
+        }
+        GUILayout.Label(expression != null ? "Keys: 1-3 gestures · F1-F3 emotions" : "Keys: 1-3 gestures", small);
+    }
+
     void DrawMic()
     {
         GUILayout.Space(6);
@@ -226,7 +261,8 @@ public class MasterclassHUD : MonoBehaviour
         var r = dispatcher.LastReply;
         if (r == null) return;
         if (!string.IsNullOrEmpty(r.transcript)) GUILayout.Label("You said: " + r.transcript, small);
-        GUILayout.Label("Reply: text only (neutral body)" + (string.IsNullOrEmpty(r.brain) ? "" : $" · brain {r.brain}"), small);
+        string body = Has(MasterclassStage.TalkingCharacter) ? $"action {r.action} · emotion {r.emotion}" : "text only (neutral body)";
+        GUILayout.Label("Reply: " + body + (string.IsNullOrEmpty(r.brain) ? "" : $" · brain {r.brain}"), small);
         if (r.timings_ms != null)
         {
             var t = r.timings_ms;

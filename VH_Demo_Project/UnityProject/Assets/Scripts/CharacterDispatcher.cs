@@ -29,9 +29,9 @@ public class CharacterDispatcher : MonoBehaviour
         else
             Debug.LogWarning("TTS failed: the server sent no audio for this reply. Check the server console.");
 
-        // ===== TURN-7 · Brain ▸ Body · the face and the gesture start with the voice =====
-        // Webinar: set the emotion and fire the gesture here, right before the voice starts.
-        // ===== end TURN-7 =====
+        // TURN-7
+        if (expression != null) expression.SetEmotion(r.emotion);
+        if (behavior != null) behavior.PlayGesture(r.action);
 
         // LIVE-5b
         if (clip != null) yield return speech.Play(clip);

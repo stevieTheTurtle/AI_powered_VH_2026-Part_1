@@ -35,5 +35,14 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/D2_3_VoiceLoop.unity
     guid: da97612ef98082f4f8810fdff0c41b89
+  - enabled: 1
+    path: Assets/Scenes/W_1_Gestures.unity
+    guid: 235890497106aa94990e3fe8ebd022ca
+  - enabled: 1
+    path: Assets/Scenes/W_2_Emotions.unity
+    guid: 974dc6189a5f91c4a9da8fdebc683896
+  - enabled: 1
+    path: Assets/Scenes/W_3_TalkingCharacter.unity
+    guid: d00f4e5db68b147428dfe911c32a2847
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

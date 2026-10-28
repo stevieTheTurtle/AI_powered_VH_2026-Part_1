@@ -77,6 +77,4 @@ public class ExpressionController : MonoBehaviour
     [ContextMenu("Emotion/Neutral")]   void TestNeutral()   => SetEmotion("NEUTRAL");
     [ContextMenu("Emotion/Happy")]     void TestHappy()     => SetEmotion("HAPPY");
     [ContextMenu("Emotion/Sad")]       void TestSad()       => SetEmotion("SAD");
-    [ContextMenu("Emotion/Surprised")] void TestSurprised() => SetEmotion("SURPRISED");
-    [ContextMenu("Emotion/Angry")]     void TestAngry()     => SetEmotion("ANGRY");
 }

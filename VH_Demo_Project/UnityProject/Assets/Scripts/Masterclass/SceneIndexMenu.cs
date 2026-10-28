@@ -22,7 +22,7 @@ public class SceneIndexMenu : MonoBehaviour
         float w = Mathf.Min(760, Screen.width - 40);
         GUILayout.BeginArea(new Rect((Screen.width - w) / 2, 20, w, Screen.height - 40));
         GUILayout.Label("AI-Powered Virtual Humans · Part 1 · Demo", titleStyle);
-        GUILayout.Label("One scene per stage of Day 1 and Day 2. Each scene contains everything built up to that point. "
+        GUILayout.Label("One scene per stage of Day 1, Day 2 and the webinar. Each scene contains everything built up to that point. "
                       + "Click a stage; in the scene, the panel top left has the buttons to try it and a button back here.", detailStyle);
         GUILayout.Space(10);
         scroll = GUILayout.BeginScrollView(scroll);

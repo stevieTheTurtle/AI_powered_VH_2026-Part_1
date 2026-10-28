@@ -14,7 +14,7 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
 
-// VH Demo Project: builds one Unity scene per stage of Day 1 and Day 2 (the stages of the slides),
+// VH Demo Project: builds one Unity scene per stage of Day 1, Day 2 and the webinar (the stages of the slides),
 // plus 00_Index, a menu with one button per stage. Everything comes from Assets/Masterclass/MasterclassConfig.asset:
 // project settings, the Animator Controllers + Avatar Mask, the scenes.
 // Re-run "Masterclass/Build Demo Scenes" after you change the character, the clips or the config.
@@ -26,6 +26,8 @@ public static class MasterclassBuilder
     const string SettingsDir = "Assets/Settings";   // URP asset + renderer: same place as in the starter project
     const string ScenesDir = "Assets/Scenes";
     const string TmpEssentials = "Packages/com.unity.ugui/Package Resources/TMP Essential Resources.unitypackage";
+
+    static readonly string[] GestureNames = { "Wave", "Shrug", "Thinking" };
 
     struct SceneSpec
     {
@@ -71,6 +73,18 @@ public static class MasterclassBuilder
             title = "Day 2 · 9. Voice loop (LIVE-6, TURN-4)",
             index = "Hour 6 · Push-to-talk → /voice-chat: Whisper → one LLM call (text only) → Piper → lip-sync. Timings shown.",
             notes = "Click the Game view, hold Space, speak, release.\nWrite down the three timings: STT · brain · TTS.\nThe body stays neutral: gestures and emotions arrive in the webinar." },
+        new SceneSpec { stage = MasterclassStage.Gestures, file = "W_1_Gestures",
+            title = "Webinar · 10. Gesture layer (LIVE-7)",
+            index = "Webinar · A Gesture layer above Speaking (same UpperBodyMask): WAVE, SHRUG, THINKING, fired by CharacterBehaviorManager.PlayGesture through a whitelist.",
+            notes = "Click a gesture: it plays on the upper body, then the layer goes back to Empty.\n\"DANCE!\" is not in the whitelist: a warning in the Console, nothing moves.\nToggle Speaking and fire a gesture: the gesture layer wins while it plays." },
+        new SceneSpec { stage = MasterclassStage.Emotions, file = "W_2_Emotions",
+            title = "Webinar · 11. Facial emotion",
+            index = "Webinar · ExpressionController.SetEmotion: brows, cheeks and eyes ease into a preset (HAPPY, SAD) in 0.25 s. The mouth stays with the lip-sync.",
+            notes = "Click an emotion: the face eases in; NEUTRAL eases out.\nPlay the sample clip while HAPPY: lips and emotion together, each owns its own shapes." },
+        new SceneSpec { stage = MasterclassStage.TalkingCharacter, file = "W_3_TalkingCharacter", tag = "part1-end",
+            title = "Webinar · 12. The talking character (TURN-5..7, LIVE-8)",
+            index = "Webinar · Structured brain: one LLM call returns speech_text + action + emotion (validated, with a fallback); the dispatcher sets the face and fires the gesture as the voice starts.",
+            notes = "Type, or hold Space and speak.\n\"Hello!\" → WAVE + HAPPY · bad news → SAD · hard question → THINKING · unknowable → SHRUG.\nScore each reply: lips in sync · gesture fits · face fits." },
     };
 
     // The index: the scenes above, with Hour 4 as a note between Day 1 and Day 2.
@@ -224,6 +238,9 @@ public static class MasterclassBuilder
         if (cfg.characterPrefab == null) missing.Add("character (Assets/Characters)");
         foreach (var (n, c) in new[] { ("idle", cfg.idle), ("talk", cfg.talk) })
             if (c == null) missing.Add(n + " clip");
+        var gestures = new[] { ("wave", cfg.wave), ("shrug", cfg.shrug), ("thinking", cfg.thinking) }
+            .Where(g => g.Item2 == null).Select(g => g.Item1).ToList();
+        if (gestures.Count > 0) missing.Add("gesture clips for the webinar scenes (" + string.Join(", ", gestures) + ")");
         if (cfg.sampleSpeech == null) missing.Add("sample speech (Assets/Audio)");
         if (missing.Count > 0) Debug.LogWarning("Masterclass config: missing " + string.Join(", ", missing) + ". Scenes are built anyway: import what is missing and run Masterclass → Build Demo Scenes again.", cfg);
     }
@@ -324,7 +341,7 @@ public static class MasterclassBuilder
 
     // ------------------------------------------------------------------ animator
 
-    struct Controllers { public AnimatorController h2, body; }
+    struct Controllers { public AnimatorController h2, body, full; }
 
     static Controllers BuildControllers(MasterclassConfig cfg)
     {
@@ -339,7 +356,7 @@ public static class MasterclassBuilder
         h2.layers[0].stateMachine.defaultState = h2Idle;
 
         // Upper-body mask: everything except the root, legs and feet. Idle (base layer) stays full body;
-        // talking plays only on the upper body, over it.
+        // talking and gestures play only on the upper body, over it.
         string maskPath = Gen + "/UpperBodyMask.mask";
         AssetDatabase.DeleteAsset(maskPath);
         var mask = new AvatarMask();
@@ -354,8 +371,36 @@ public static class MasterclassBuilder
 
         // Hour 3 on: base layer = full-body Idle; "Speaking" layer (upper-body mask) = Empty <-> talk beats.
         var body = BaseController(cfg, Gen + "/VH_Controller.controller", mask);
+
+        // Webinar: the same + the Gesture layer on top (Empty <-> one state per gesture), same mask.
+        var c = BaseController(cfg, Gen + "/VH_Controller_Gestures.controller", mask);
+        c.AddLayer("Gesture");
+        var layers = c.layers;
+        int gi = layers.Length - 1;     // Gesture is the last layer, above Speaking
+        layers[gi].defaultWeight = 1f;
+        layers[gi].blendingMode = AnimatorLayerBlendingMode.Override;
+        layers[gi].avatarMask = mask;
+        c.layers = layers;
+
+        var gsm = c.layers[gi].stateMachine;
+        var empty = gsm.AddState("Empty", new Vector3(300, 250));
+        gsm.defaultState = empty;
+        var gClips = new[] { cfg.wave, cfg.shrug, cfg.thinking };
+        for (int i = 0; i < GestureNames.Length; i++)
+        {
+            string n = GestureNames[i];
+            c.AddParameter(n, AnimatorControllerParameterType.Trigger);
+            float a = i / (float)GestureNames.Length * Mathf.PI * 2f;
+            var s = gsm.AddState(n, new Vector3(300 + Mathf.Cos(a) * 260, 250 + Mathf.Sin(a) * 160));
+            s.motion = gClips[i];
+            var any = gsm.AddAnyStateTransition(s);
+            any.AddCondition(AnimatorConditionMode.If, 0, n);
+            any.hasExitTime = false; any.duration = 0.15f; any.canTransitionToSelf = false;
+            var back = s.AddTransition(empty);
+            back.hasExitTime = true; back.exitTime = 0.9f; back.duration = 0.2f;
+        }
         AssetDatabase.SaveAssets();
-        return new Controllers { h2 = h2, body = body };
+        return new Controllers { h2 = h2, body = body, full = c };
     }
 
     // Hour 3: base layer = Idle (full body). "Speaking" layer with the upper-body mask: Empty <-> talk,
@@ -433,7 +478,8 @@ public static class MasterclassBuilder
         foreach (var spec in Specs)
         {
             string p = $"{ScenesDir}/{spec.file}.unity";
-            var ctrl = spec.stage < MasterclassStage.Speaking ? ctrls.h2 : ctrls.body;
+            var ctrl = spec.stage < MasterclassStage.Speaking ? ctrls.h2
+                     : spec.stage < MasterclassStage.Gestures ? ctrls.body : ctrls.full;
             BuildStageScene(cfg, spec, ctrl, mats);
             EditorSceneManager.SaveScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene(), p);
             buildList.Add(new EditorBuildSettingsScene(p, true));
@@ -519,7 +565,7 @@ public static class MasterclassBuilder
 
         GazeController gaze = null; CharacterBehaviorManager behavior = null; AudioSource src = null; SpeechPlayer speech = null;
         AgentNetworkClient client = null; CharacterDispatcher dispatcher = null; MicRecorder mic = null;
-        VoiceChatController voice = null; ChatUI chat = null;
+        VoiceChatController voice = null; ChatUI chat = null; ExpressionController expression = null;
 
         // Gaze: Animation Rigging rig on the root, aimed at the camera.
         if (st >= MasterclassStage.Gaze) gaze = BuildGaze(animator, cam.transform);
@@ -557,6 +603,14 @@ public static class MasterclassBuilder
             Set(speech, "source", src); Set(speech, "behavior", behavior); Set(speech, "testClip", cfg.sampleSpeech);
         }
 
+        // Webinar: facial emotions (gestures come with the Gesture layer of VH_Controller_Gestures).
+        if (st >= MasterclassStage.Emotions)
+        {
+            expression = root.AddComponent<ExpressionController>();
+            Set(expression, "faces", faces);
+            Set(expression, "presets", cfg.emotions.Select(Clone).ToList());
+        }
+
         // Day 2: the Network object (client), the dispatcher on the character, the chat box.
         if (st >= MasterclassStage.TypedChat)
         {
@@ -565,6 +619,8 @@ public static class MasterclassBuilder
             Set(client, "baseUrl", cfg.serverUrl);
             dispatcher = root.AddComponent<CharacterDispatcher>();
             Set(dispatcher, "client", client); Set(dispatcher, "speech", speech);
+            // Webinar, the talking character: the reply's action and emotion reach the body (TURN-7).
+            if (st >= MasterclassStage.TalkingCharacter) { Set(dispatcher, "behavior", behavior); Set(dispatcher, "expression", expression); }
             chat = BuildChatUI(dispatcher);
 
             // Microphone (and, in the voice loop, push-to-talk with a listening cue) on the Network object.
@@ -575,6 +631,7 @@ public static class MasterclassBuilder
                 Set(voice, "mic", mic); Set(voice, "client", client); Set(voice, "dispatcher", dispatcher);
                 Set(voice, "listeningCue", BuildListeningCue(chat));
                 Set(voice, "chatUI", chat);
+                if (st >= MasterclassStage.TalkingCharacter) Set(voice, "behavior", behavior);   // THINKING while waiting
             }
         }
 
@@ -583,6 +640,7 @@ public static class MasterclassBuilder
         Set(hud, "cam", cam); Set(hud, "gaze", gaze); Set(hud, "behavior", behavior); Set(hud, "mouthSource", src);
         Set(hud, "speech", speech); Set(hud, "sampleSpeech", cfg.sampleSpeech); Set(hud, "client", client);
         Set(hud, "dispatcher", dispatcher); Set(hud, "mic", mic); Set(hud, "voice", voice); Set(hud, "chatUI", chat);
+        Set(hud, "expression", expression);
     }
 
     // OVRLipSync is optional: wired by reflection so the project compiles without the plugin.

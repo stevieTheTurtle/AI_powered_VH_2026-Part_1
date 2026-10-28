@@ -6,7 +6,7 @@ using UnityEditor;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
-// Play (in 00_Index or a Day 2 scene) starts the Python server by itself, in its own terminal window, if it is not already running:
+// Play (in 00_Index, a Day 2 or a webinar scene) starts the Python server by itself, in its own terminal window, if it is not already running:
 // VH_Demo_Project/PythonProject/run_server.bat (Windows) or run_server.sh (macOS, Linux).
 // The first time it also creates the .venv, installs the requirements and gets the speech models.
 // Close the terminal window to stop the server. Menu: Masterclass → Python Server.
@@ -26,11 +26,11 @@ static class PythonServerLauncher
         };
     }
 
-    // Day 2 scenes talk to the server; the index too, since you can jump to them from it. Day 1 needs no server.
+    // Day 2 and webinar scenes talk to the server; the index too, since you can jump to them from it. Day 1 needs no server.
     static bool NeedsServer()
     {
         string scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
-        return scene == "00_Index" || scene.StartsWith("D2_");
+        return scene == "00_Index" || scene.StartsWith("D2_") || scene.StartsWith("W_");
     }
 
     static string PythonDir => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", "PythonProject"));

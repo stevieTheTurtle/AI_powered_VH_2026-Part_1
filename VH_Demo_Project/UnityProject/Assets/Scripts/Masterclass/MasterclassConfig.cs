@@ -92,16 +92,12 @@ public class MasterclassConfig : ScriptableObject
     {
         E("HAPPY",     ("Cheek_Raise", 70), ("Brow_Raise_Inner", 25), ("Eye_Squint", 35)),
         E("SAD",       ("Brow_Raise_Inner", 90), ("Brow_Compress", 30), ("Look_Down", 30)),
-        E("SURPRISED", ("Brow_Raise_Inner", 80), ("Brow_Raise_Outer", 90), ("Eye_Wide", 80)),
-        E("ANGRY",     ("Brow_Drop", 90), ("Brow_Compress", 60), ("Eye_Squint", 50), ("Nose_Sneer", 40)),
     };
 
     public static List<EmotionPreset> ArkitEmotions() => new List<EmotionPreset>
     {
         E("HAPPY",     ("cheekSquint", 70), ("browInnerUp", 25), ("eyeSquint", 35)),
         E("SAD",       ("browInnerUp", 90), ("browDown", 20), ("eyeLookDown", 35)),
-        E("SURPRISED", ("browInnerUp", 80), ("browOuterUp", 90), ("eyeWide", 80)),
-        E("ANGRY",     ("browDown", 90), ("eyeSquint", 60), ("noseSneer", 40)),
     };
 
     [ContextMenu("Presets/Reallusion CC4 (course character)")]

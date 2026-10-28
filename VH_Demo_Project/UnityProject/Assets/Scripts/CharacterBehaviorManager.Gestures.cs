@@ -17,11 +17,17 @@ public partial class CharacterBehaviorManager
 
     public void PlayGesture(string gestureId)
     {
-        // ===== LIVE-7 · Body ▸ Gesture layer · the whitelist =====
-        // Connects the brain's "action" string to an Animator trigger, safely.
-        // Write: ignore empty and "NONE"; normalize (Trim, ToUpperInvariant);
-        //        look the id up in Gestures: found -> animator.SetTrigger, not found -> Debug.LogWarning.
-        // ===== end LIVE-7 =====
+        // LIVE-7
+        if (string.IsNullOrWhiteSpace(gestureId)) return;
+        string id = gestureId.Trim().ToUpperInvariant();
+        if (id == "NONE") return;
+
+        if (!Gestures.TryGetValue(id, out int trigger))
+        {
+            Debug.LogWarning($"Unknown gesture '{gestureId}' ignored", this);
+            return;
+        }
+        animator.SetTrigger(trigger);
     }
 
     [ContextMenu("Test/Wave")]     void TestWave()     => PlayGesture("WAVE");

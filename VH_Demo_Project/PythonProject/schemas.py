@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 # The body's vocabulary: what the brain is allowed to ask for.
 Action = Literal["NONE", "WAVE", "SHRUG", "THINKING"]
-Emotion = Literal["NEUTRAL", "HAPPY", "SAD", "SURPRISED", "ANGRY"]
+Emotion = Literal["NEUTRAL", "HAPPY", "SAD"]
 
 
 class ChatRequest(BaseModel):
@@ -16,10 +16,9 @@ class BrainOutput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     speech_text: str
-    # ===== TURN-5 · Contract ▸ body language =====
-    # Add two fields with safe defaults: `action` (an Action, default "NONE")
-    # and `emotion` (an Emotion, default "NEUTRAL"). Unity already reads both names.
-    # ===== end TURN-5 =====
+    # TURN-5
+    action: Action = "NONE"
+    emotion: Emotion = "NEUTRAL"
 
 
 class ChatResponse(BrainOutput):
@@ -28,4 +27,4 @@ class ChatResponse(BrainOutput):
     audio_url: Optional[str] = None
     transcript: Optional[str] = None
     timings_ms: Optional[Dict[str, int]] = None
-    brain: Optional[str] = None      # "echo" or "llm": shown in the console
+    brain: Optional[str] = None      # "echo", "llm" or "llm-text": shown in the HUD
