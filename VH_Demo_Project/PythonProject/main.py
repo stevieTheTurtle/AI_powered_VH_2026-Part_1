@@ -14,7 +14,9 @@ from starlette.concurrency import run_in_threadpool
 
 from schemas import BrainOutput, ChatRequest, ChatResponse
 from stt import transcribe
-from brain import think, brain_name
+from brain import think, brain_name, last_debug
+from schemas import Action, Emotion
+from typing import get_args
 from tts import synthesize, cleanup, AUDIO_DIR
 
 Path("static/audio").mkdir(parents=True, exist_ok=True)
@@ -39,6 +41,12 @@ app.mount("/static", StaticFiles(directory="static"), name="static")   # Unity d
 @app.get("/")
 def root():
     return {"status": "ok", "brain": brain_name()}
+
+
+@app.get("/brain-debug")
+def brain_debug():
+    """Demo only: the last brain call (raw model output, schema check) and the allowed values, for the HUD."""
+    return {**last_debug, "actions": list(get_args(Action)), "emotions": list(get_args(Emotion))}
 
 
 def save_upload(audio: UploadFile) -> str:

@@ -75,6 +75,14 @@ if _KEY or _LOCAL:
             _client = None
 
 
+# Demo only: what the last call to the brain produced, for the HUD's brain debugger (GET /brain-debug).
+last_debug = {"user_text": "", "status": "no call yet", "raw": "", "error": ""}
+
+
+def _debug(user_text: str, status: str, raw: str = "", error: str = ""):
+    last_debug.update(user_text=user_text, status=status, raw=raw or "", error=str(error)[:600])
+
+
 def brain_name() -> str:
     if _client is None:
         return "echo"
@@ -112,8 +120,10 @@ def _fallback() -> BrainOutput:
 def think_structured(user_text: str) -> BrainOutput:
     """The same single call, now returning speech + action + emotion."""
     if _client is None:
+        _debug(user_text, "echo: no LLM, the brain repeats your words")
         return BrainOutput(speech_text=user_text, action="THINKING")   # echo, with a visible gesture
     # LIVE-8
+    raw = ""
     try:
         # Schema-constrained output: Ollama asks the model for exactly this structure.
         # Pydantic still validates it, because "reduces failures" is not "eliminates".
@@ -123,19 +133,26 @@ def think_structured(user_text: str) -> BrainOutput:
                       {"role": "user", "content": user_text}],
             format=BrainOutput.model_json_schema(),
             options={"temperature": _TEMPERATURE})
-        return _parse(resp.message.content)
+        raw = resp.message.content
+        out = _parse(raw)
+        _debug(user_text, "valid: fits the schema", raw)
+        return out
     except (ValidationError, ValueError) as e:
         print("Brain: invalid JSON from model:", e)
+        _debug(user_text, "invalid: does not fit the schema -> fallback", raw, e)
         return _fallback()
     except Exception as e:                               # network, auth, quota used up...
         print("Brain: LLM call failed:", e)
+        _debug(user_text, "LLM call failed -> fallback", raw, e)
         return _fallback()
 
 
 def think(user_text: str) -> BrainOutput:
     """THE SEAM: the server only ever calls this."""
     if _MODE == "text":                                  # reference only: voice-loop checkpoint
-        return BrainOutput(speech_text=think_text(user_text))
+        out = BrainOutput(speech_text=think_text(user_text))
+        _debug(user_text, "text only (BRAIN=text): no JSON", out.speech_text)
+        return out
     return think_structured(user_text)
 
 

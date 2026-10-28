@@ -31,6 +31,8 @@ public class MasterclassHUD : MonoBehaviour
     [SerializeField] ChatUI chatUI;
 
     [System.Serializable] class SttReply { public string transcript; }
+    // GET /brain-debug: the last brain call as the server saw it (demo only).
+    [System.Serializable] class BrainDebug { public string user_text, status, raw, error; public string[] actions, emotions; }
 
     static readonly string[] GestureKeys = { "WAVE", "SHRUG", "THINKING" };
     static readonly string[] Emotions = { "NEUTRAL", "HAPPY", "SAD" };
@@ -41,7 +43,11 @@ public class MasterclassHUD : MonoBehaviour
     AudioSource playback;                       // Microphone stage: plays your recording back
     string micStatus = "Hold Space in the Game view, speak, release.";
     string micTranscript = "";
-    GUIStyle box, small, subtitle;
+    GUIStyle box, small, subtitle, mono;
+    BrainDebug brainDebug;
+    ChatResponse debuggedReply;
+    bool showBrainDebug = true;
+    Vector2 panelScroll;
 
     bool Has(MasterclassStage s) => stage >= s;
 
@@ -70,6 +76,12 @@ public class MasterclassHUD : MonoBehaviour
 
     void Update()
     {
+        // Brain debugger: after each new reply, ask the server what the brain produced.
+        if (dispatcher != null && dispatcher.LastReply != null && dispatcher.LastReply != debuggedReply)
+        {
+            debuggedReply = dispatcher.LastReply;
+            StartCoroutine(FetchBrainDebug());
+        }
         if (chatUI != null && chatUI.IsTyping) return;
         if (Input.GetKeyDown(KeyCode.Tab)) collapsed = !collapsed;
         if (behavior != null && Input.GetKeyDown(KeyCode.S)) behavior.SetSpeaking(!behavior.IsSpeaking);
@@ -123,6 +135,18 @@ public class MasterclassHUD : MonoBehaviour
         }
     }
 
+    IEnumerator FetchBrainDebug()
+    {
+        using (var req = UnityWebRequest.Get(client.BaseUrl + "/brain-debug"))
+        {
+            req.timeout = 5;
+            yield return req.SendWebRequest();
+            brainDebug = req.result == UnityWebRequest.Result.Success
+                ? JsonUtility.FromJson<BrainDebug>(req.downloadHandler.text)
+                : new BrainDebug { status = "no /brain-debug on the server (" + req.error + ")" };
+        }
+    }
+
     // 16-bit PCM WAV (what MicRecorder writes) -> AudioClip.
     static AudioClip WavToClip(byte[] wav)
     {
@@ -143,13 +167,15 @@ public class MasterclassHUD : MonoBehaviour
         small = new GUIStyle(GUI.skin.label) { wordWrap = true, fontSize = 12, richText = true };
         subtitle = new GUIStyle(GUI.skin.label) { wordWrap = true, fontSize = 20, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
         subtitle.normal.textColor = Color.white;
+        mono = new GUIStyle(GUI.skin.textArea) { wordWrap = true, fontSize = 11, richText = false, font = Font.CreateDynamicFontFromOSFont(new[] { "Consolas", "Menlo", "Courier New" }, 11) };
     }
 
     void OnGUI()
     {
         InitStyles();
         const float w = 340f;
-        GUILayout.BeginArea(new Rect(10, 10, w, Screen.height - 20));
+        GUILayout.BeginArea(new Rect(10, 10, w + 16, Screen.height - 20));
+        panelScroll = GUILayout.BeginScrollView(panelScroll, GUILayout.Width(w + 16));   // long brain output: scroll
         GUILayout.BeginVertical(box);
 
         GUILayout.BeginHorizontal();
@@ -174,8 +200,10 @@ public class MasterclassHUD : MonoBehaviour
             GUILayout.Label("Tab: hide/show this panel", small);
         }
         GUILayout.EndVertical();
+        GUILayout.EndScrollView();
         GUILayout.EndArea();
 
+        if (Has(MasterclassStage.TypedChat) && dispatcher != null) DrawBrainPanel();
         DrawSubtitle();
     }
 
@@ -268,6 +296,52 @@ public class MasterclassHUD : MonoBehaviour
             var t = r.timings_ms;
             GUILayout.Label($"Timings: STT {t.stt} ms · Brain {t.brain} ms · TTS {t.tts} ms · Σ {t.stt + t.brain + t.tts} ms", small);
         }
+    }
+
+    // What came out of the brain: the model's raw JSON, whether it fit the schema (BrainOutput),
+    // and each field checked against the allowed values. A fallback reply shows here as "invalid" or "failed".
+    // Its own panel, top right, so it stays readable next to the stage panel.
+    void DrawBrainPanel()
+    {
+        const float w = 380f;
+        GUILayout.BeginArea(new Rect(Screen.width - w - 10, 10, w, Screen.height - 180));   // stops above the subtitle
+        GUILayout.BeginVertical(box);
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("<b>Brain output</b>  (structured, schema BrainOutput)", new GUIStyle(small) { fontSize = 14 });
+        if (GUILayout.Button(showBrainDebug ? "–" : "+", GUILayout.Width(24))) showBrainDebug = !showBrainDebug;
+        GUILayout.EndHorizontal();
+        if (showBrainDebug) DrawBrainDebug();
+        GUILayout.EndVertical();
+        GUILayout.EndArea();
+    }
+
+    void DrawBrainDebug()
+    {
+        if (brainDebug == null) { GUILayout.Label("Send a message: the brain's raw output appears here.", small); return; }
+
+        string color = brainDebug.status != null && brainDebug.status.StartsWith("valid") ? "#80ff80" : "#ffb060";
+        GUILayout.Label($"<color={color}>{brainDebug.status}</color>", small);
+        if (!string.IsNullOrEmpty(brainDebug.user_text)) GUILayout.Label("In: " + brainDebug.user_text, small);
+        if (!string.IsNullOrEmpty(brainDebug.raw))
+        {
+            string raw = brainDebug.raw.Length > 500 ? brainDebug.raw.Substring(0, 500) + " …" : brainDebug.raw;
+            GUILayout.Label("Raw model output:", small);
+            GUILayout.Label(raw, mono);
+        }
+        if (!string.IsNullOrEmpty(brainDebug.error))
+            GUILayout.Label("<color=#ff8080>" + brainDebug.error + "</color>", small);
+
+        var r = dispatcher != null ? dispatcher.LastReply : null;
+        if (r == null) return;
+        GUILayout.Label("Unity received:", small);
+        GUILayout.Label($"speech_text  \"{r.speech_text}\"\naction       {Check(r.action, brainDebug.actions)}\nemotion      {Check(r.emotion, brainDebug.emotions)}", mono);
+    }
+
+    static string Check(string value, string[] allowed)
+    {
+        if (allowed == null || allowed.Length == 0) return value;
+        bool ok = System.Array.IndexOf(allowed, value) >= 0;
+        return $"{value}  {(ok ? "✓" : "✗")}  of {string.Join(" | ", allowed)}";
     }
 
     void DrawSubtitle()
