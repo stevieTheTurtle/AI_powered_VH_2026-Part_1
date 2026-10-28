@@ -33,7 +33,7 @@ Reply with ONE JSON object and nothing else:
 ACTION must be exactly one of: NONE, WAVE, SHRUG, THINKING
 <TURN-6: one line per action saying WHEN to use it, e.g. "- WAVE: greetings and goodbyes">
 
-EMOTION must be exactly one of: NEUTRAL, HAPPY, SAD, SURPRISED, ANGRY
+EMOTION must be exactly one of: NEUTRAL, HAPPY, SAD
 Choose the emotion that fits your reply. Bad news or sad topics: SAD, usually with NONE.
 Never use an action or emotion that is not in the lists."""
 

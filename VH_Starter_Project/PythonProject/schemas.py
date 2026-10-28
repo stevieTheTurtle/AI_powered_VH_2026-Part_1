@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 # The body's vocabulary: what the brain is allowed to ask for.
 Action = Literal["NONE", "WAVE", "SHRUG", "THINKING"]
-Emotion = Literal["NEUTRAL", "HAPPY", "SAD", "SURPRISED", "ANGRY"]
+Emotion = Literal["NEUTRAL", "HAPPY", "SAD"]
 
 
 class ChatRequest(BaseModel):

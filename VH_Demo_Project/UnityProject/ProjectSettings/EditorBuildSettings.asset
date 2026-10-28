@@ -4,6 +4,36 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/00_Index.unity
+    guid: 4ebdbb7c2c46af14cbcace275296200e
+  - enabled: 1
+    path: Assets/Scenes/D1_1_Stage.unity
+    guid: 6003cb175b59f3b4b8538ff26353758e
+  - enabled: 1
+    path: Assets/Scenes/D1_2_Blink.unity
+    guid: 71e2244127689724aaf0452844a9a7c9
+  - enabled: 1
+    path: Assets/Scenes/D1_3_Gaze.unity
+    guid: c9429a3c2cb2aa549936f6553b066d66
+  - enabled: 1
+    path: Assets/Scenes/D1_4_Speaking.unity
+    guid: e0ade51efd7b97f45a974d60331b5560
+  - enabled: 1
+    path: Assets/Scenes/D1_5_LipSync.unity
+    guid: 24cd586803545524cb9e5f20143578af
+  - enabled: 1
+    path: Assets/Scenes/D1_6_SpeechPlayer.unity
+    guid: 010f3596010131f498582dd684987232
+  - enabled: 1
+    path: Assets/Scenes/D2_1_TypedChat.unity
+    guid: 1a81137e51ab5a04b864656c2e208f71
+  - enabled: 1
+    path: Assets/Scenes/D2_2_Microphone.unity
+    guid: 1e3cf3638153636458a81e95d5f69828
+  - enabled: 1
+    path: Assets/Scenes/D2_3_VoiceLoop.unity
+    guid: da97612ef98082f4f8810fdff0c41b89
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0
